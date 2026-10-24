@@ -10,7 +10,7 @@
   "use strict";
 
   const API_URL = ""; // <-- put your backend address here, e.g. "http://localhost:5000"
-  const GROQ_API_KEY = ""; // <-- put your Groq API key here, or use the backend server
+  const GROQ_API_KEY = load("vd_groq_api_key", ""); // API key stored in localStorage
 
   const D = window.VD_DATA;
   const L = window.VDLogic;
@@ -124,7 +124,7 @@
   }
 
   /* ---------- router ---------- */
-  const routes = { search: viewSearch, matters: viewMatters, community: viewCommunity, activity: viewActivity };
+  const routes = { search: viewSearch, matters: viewMatters, community: viewCommunity, activity: viewActivity, settings: viewSettings };
   let pendingQuestion = "";
 
   function currentRoute() {
@@ -535,6 +535,39 @@ Return only the anonymized text.`;
     document.getElementById("rows").innerHTML = rows.length ? rows.map(function (l) {
       return "<tr><td>" + esc(fmtTime(l.iso)) + '</td><td><span class="pill ' + (l.type === "ai" ? "ai" : "human") + '">' + esc(l.action) + "</span></td><td>" + esc(l.user) + "</td><td>" + esc(l.details) + "</td></tr>";
     }).join("") : '<tr><td colspan="4" class="muted">Nothing here yet.</td></tr>';
+  }
+
+  /* ---------- SETTINGS ---------- */
+  function viewSettings() {
+    view.innerHTML =
+      "<h1>Settings</h1>" +
+      '<div class="card">' +
+        "<h2>AI Configuration</h2>" +
+        '<p class="note">Configure your AI provider. The API key is stored locally in your browser.</p>' +
+        '<label class="lbl" for="groq-key">Groq API Key</label>' +
+        '<input type="password" id="groq-key" placeholder="gsk_..." value="' + esc(GROQ_API_KEY) + '">' +
+        '<p class="muted" style="margin-top:8px">Get your API key from <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a></p>' +
+        '<div class="row-actions"><button class="btn gold" id="save-settings" type="button">Save Settings</button></div>' +
+      '</div>' +
+      '<div class="card">' +
+        "<h2>Backend Server (Optional)</h2>" +
+        '<p class="note">For production use, run the Node.js backend server to keep your API key secure on the server.</p>' +
+        '<label class="lbl" for="api-url">Backend URL</label>' +
+        '<input type="text" id="api-url" placeholder="http://localhost:5000" value="' + esc(API_URL) + '">' +
+        '<p class="muted" style="margin-top:8px">Leave empty to use direct Groq API from browser.</p>' +
+      '</div>';
+
+    document.getElementById("save-settings").addEventListener("click", function () {
+      const groqKey = document.getElementById("groq-key").value.trim();
+      const apiUrl = document.getElementById("api-url").value.trim();
+      save("vd_groq_api_key", groqKey);
+      // Note: API_URL is a constant, so we'd need to reload to apply changes
+      if (apiUrl !== API_URL) {
+        toast("API URL change requires page reload to take effect.");
+      } else {
+        toast("Settings saved.");
+      }
+    });
   }
 
   /* ---------- start ---------- */
