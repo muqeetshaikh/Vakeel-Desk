@@ -34,7 +34,7 @@
     return isNaN(d) ? "" : d.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
   };
 
-  const API_URL = ""; // <-- put your backend address here, e.g. "http://localhost:5000"
+  const API_URL = "http://localhost:5000"; // <-- put your backend address here, e.g. "http://localhost:5000"
 
   const D = window.VD_DATA;
   const L = window.VDLogic;
@@ -554,27 +554,16 @@ Return only the anonymized text.`;
     view.innerHTML =
       "<h1>Settings</h1>" +
       '<div class="card">' +
-        "<h2>AI Configuration</h2>" +
-        '<p class="note">Configure your AI provider. The API key is stored locally in your browser.</p>' +
-        '<label class="lbl" for="groq-key">Groq API Key</label>' +
-        '<input type="password" id="groq-key" placeholder="gsk_..." value="' + esc(getGroqApiKey()) + '">' +
-        '<p class="muted" style="margin-top:8px">Get your API key from <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a></p>' +
-        '<div class="row-actions"><button class="btn gold" id="save-settings" type="button">Save Settings</button></div>' +
-      '</div>' +
-      '<div class="card">' +
-        "<h2>Backend Server (Optional)</h2>" +
-        '<p class="note">For production use, run the Node.js backend server to keep your API key secure on the server.</p>' +
+        "<h2>Backend Configuration</h2>" +
+        '<p class="note">The API key is configured in the .env file on the server for security.</p>' +
         '<label class="lbl" for="api-url">Backend URL</label>' +
         '<input type="text" id="api-url" placeholder="http://localhost:5000" value="' + esc(API_URL) + '">' +
-        '<p class="muted" style="margin-top:8px">Leave empty to use direct Groq API from browser.</p>' +
+        '<p class="muted" style="margin-top:8px">The backend server reads the API key from .env file.</p>' +
+        '<div class="row-actions"><button class="btn gold" id="save-settings" type="button">Save Settings</button></div>' +
       '</div>';
 
     document.getElementById("save-settings").addEventListener("click", function () {
-      const groqKey = document.getElementById("groq-key").value.trim();
       const apiUrl = document.getElementById("api-url").value.trim();
-      save("vd_groq_api_key", groqKey);
-      // Update the mode display
-      updateModeDisplay();
       // Note: API_URL is a constant, so we'd need to reload to apply changes
       if (apiUrl !== API_URL) {
         toast("API URL change requires page reload to take effect.");
