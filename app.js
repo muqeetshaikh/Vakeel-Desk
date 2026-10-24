@@ -10,10 +10,11 @@
   "use strict";
 
   const API_URL = ""; // <-- put your backend address here, e.g. "http://localhost:5000"
+  const GROQ_API_KEY = ""; // <-- put your Groq API key here, or use the backend server
 
   const D = window.VD_DATA;
   const L = window.VDLogic;
-  const ENGINE = API_URL ? "Gemma 4 (backend)" : "Built-in demo logic";
+  const ENGINE = API_URL ? "Gemma 4 (backend)" : (GROQ_API_KEY ? "Groq (Llama 3.3)" : "Built-in demo logic");
   const view = document.getElementById("view");
 
   /* ---------- tiny helpers ---------- */
@@ -66,6 +67,33 @@
       return await res.json();
     } catch (e) {
       toast("Backend not reachable, using built-in demo logic instead.");
+      return null;
+    }
+  }
+
+  async function callGroq(systemPrompt, userPrompt) {
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + GROQ_API_KEY
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          model: "llama-3.3-70b-versatile",
+          temperature: 0.5,
+          max_tokens: 1024
+        })
+      });
+      if (!res.ok) throw new Error("Groq API error: " + res.status);
+      const data = await res.json();
+      return data.choices[0]?.message?.content || "";
+    } catch (e) {
+      console.error("Groq API error:", e);
       return null;
     }
   }
@@ -171,7 +199,39 @@
           return { name: c.name, year: c.year, summary: c.summary || "", articles: c.articles || [] };
         })
       };
-    } else {
+    } else if (GROQ_API_KEY) {
+      const systemPrompt = `You are a legal expert on the Constitution of India.
+When answering questions:
+1. Provide a clear, plain-language explanation
+2. Cite relevant articles by number
+3. Mention related Supreme Court cases if applicable
+4. Keep responses concise and practical
+
+Respond in JSON format:
+{
+  "answer": "your explanation",
+  "articles": [{"number": "21", "title": "Article title", "text": "plain text"}],
+  "cases": [{"name": "Case name", "year": "year", "summary": "brief summary", "articles": ["21"]}]
+}`;
+      const groqResponse = await callGroq(systemPrompt, q);
+      if (groqResponse) {
+        try {
+          const parsed = JSON.parse(groqResponse);
+          res = {
+            answer: parsed.answer || groqResponse,
+            articles: parsed.articles || [],
+            cases: parsed.cases || []
+          };
+        } catch (e) {
+          res = {
+            answer: groqResponse,
+            articles: [],
+            cases: []
+          };
+        }
+      }
+    }
+    if (!res) {
       res = L.search(q);
     }
 
@@ -244,6 +304,40 @@
           dates: Array.isArray(remote.dates) ? remote.dates.join(", ") : (remote.dates || ""),
           articles: Array.isArray(remote.articles) ? remote.articles.join(", ") : (remote.articles || "")
         };
+      } else if (GROQ_API_KEY) {
+        const systemPrompt = `You are a legal document processor. Extract key information from legal notices and documents.
+Extract the following fields:
+- parties: The parties involved in the case
+- court: The court name
+- caseNumber: The case number
+- dates: Important dates (filing, hearing, etc.)
+- articles: Any constitutional articles mentioned
+
+Respond in JSON format:
+{
+  "parties": "string",
+  "court": "string",
+  "caseNumber": "string",
+  "dates": "string",
+  "articles": "string"
+}`;
+        const groqResponse = await callGroq(systemPrompt, text);
+        if (groqResponse) {
+          try {
+            const parsed = JSON.parse(groqResponse);
+            f = {
+              parties: parsed.parties || "",
+              court: parsed.court || "",
+              caseNumber: parsed.caseNumber || "",
+              dates: parsed.dates || "",
+              articles: parsed.articles || ""
+            };
+          } catch (e) {
+            f = L.extract(text);
+          }
+        } else {
+          f = L.extract(text);
+        }
       } else {
         f = L.extract(text);
       }
@@ -331,6 +425,24 @@
     const remote = await callApi("/anonymize", { text: item.text });
     if (remote && (remote.anonymized || remote.text)) {
       anon = remote.anonymized || remote.text;
+    } else if (GROQ_API_KEY) {
+      const systemPrompt = `You are a document anonymizer. Remove all personally identifiable information from legal documents.
+Replace with placeholders:
+- Names → [NAME]
+- Addresses → [ADDRESS]
+- Phone numbers → [PHONE]
+- Email addresses → [EMAIL]
+- Case numbers → [CASE NUMBER]
+- Any other identifying details → [REDACTED]
+
+Return only the anonymized text.`;
+      const groqResponse = await callGroq(systemPrompt, item.text);
+      if (groqResponse) {
+        anon = groqResponse;
+      } else {
+        const r = L.anonymize(item.text);
+        anon = r.text; count = r.count;
+      }
     } else {
       const r = L.anonymize(item.text);
       anon = r.text; count = r.count;
@@ -427,7 +539,14 @@
 
   /* ---------- start ---------- */
   const mode = document.getElementById("mode");
-  mode.textContent = API_URL ? "Backend: Gemma 4" : "Demo mode";
-  if (API_URL) mode.classList.add("live");
+  if (API_URL) {
+    mode.textContent = "Backend: Gemma 4";
+    mode.classList.add("live");
+  } else if (GROQ_API_KEY) {
+    mode.textContent = "AI: Groq (Llama 3.3)";
+    mode.classList.add("live");
+  } else {
+    mode.textContent = "Demo mode";
+  }
   render();
 })();
