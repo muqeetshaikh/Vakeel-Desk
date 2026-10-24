@@ -9,26 +9,7 @@
 (function () {
   "use strict";
 
-  const API_URL = ""; // <-- put your backend address here, e.g. "http://localhost:5000"
-  const GROQ_API_KEY = load("vd_groq_api_key", ""); // API key stored in localStorage
-
-  const D = window.VD_DATA;
-  const L = window.VDLogic;
-  const ENGINE = API_URL ? "Gemma 4 (backend)" : (GROQ_API_KEY ? "Groq (Llama 3.3)" : "Built-in demo logic");
-  const view = document.getElementById("view");
-
   /* ---------- tiny helpers ---------- */
-  const esc = function (s) {
-    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-    });
-  };
-  const nl2br = function (s) { return esc(s).replace(/\n/g, "<br>"); };
-  const fmtTime = function (iso) {
-    const d = new Date(iso);
-    return isNaN(d) ? "" : d.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
-  };
-
   const memory = {};
   function load(key, fallback) {
     try {
@@ -41,6 +22,25 @@
     memory[key] = value;
     try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* ignore */ }
   }
+
+  const esc = function (s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  };
+  const nl2br = function (s) { return esc(s).replace(/\n/g, "<br>"); };
+  const fmtTime = function (iso) {
+    const d = new Date(iso);
+    return isNaN(d) ? "" : d.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+  };
+
+  const API_URL = ""; // <-- put your backend address here, e.g. "http://localhost:5000"
+  const GROQ_API_KEY = load("vd_groq_api_key", ""); // API key stored in localStorage
+
+  const D = window.VD_DATA;
+  const L = window.VDLogic;
+  const ENGINE = API_URL ? "Gemma 4 (backend)" : (GROQ_API_KEY ? "Groq (Llama 3.3)" : "Built-in demo logic");
+  const view = document.getElementById("view");
 
   let toastTimer;
   function toast(msg) {
