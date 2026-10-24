@@ -34,7 +34,7 @@
     return isNaN(d) ? "" : d.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
   };
 
-  const API_URL = "http://localhost:5000"; // <-- put your backend address here, e.g. "http://localhost:5000"
+  const API_URL = "http://localhost:3000"; // <-- put your backend address here, e.g. "http://localhost:5000"
 
   const D = window.VD_DATA;
   const L = window.VDLogic;
@@ -557,7 +557,7 @@ Return only the anonymized text.`;
         "<h2>Backend Configuration</h2>" +
         '<p class="note">The API key is configured in the .env file on the server for security.</p>' +
         '<label class="lbl" for="api-url">Backend URL</label>' +
-        '<input type="text" id="api-url" placeholder="http://localhost:5000" value="' + esc(API_URL) + '">' +
+        '<input type="text" id="api-url" placeholder="http://localhost:3000" value="' + esc(API_URL) + '">' +
         '<p class="muted" style="margin-top:8px">The backend server reads the API key from .env file.</p>' +
         '<div class="row-actions"><button class="btn gold" id="save-settings" type="button">Save Settings</button></div>' +
       '</div>';

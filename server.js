@@ -4,7 +4,7 @@ const cors = require('cors');
 const Groq = require('groq-sdk');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 // Initialize Groq client
 const groq = new Groq({
