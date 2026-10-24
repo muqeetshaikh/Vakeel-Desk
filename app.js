@@ -46,7 +46,7 @@
 
   function getEngine() {
     const apiKey = getGroqApiKey();
-    return API_URL ? "Gemma 4 (backend)" : (apiKey ? "Groq (Llama 3.1)" : "Built-in demo logic");
+    return API_URL ? "Gemma 4 (backend)" : (apiKey ? "Groq (GPT-OSS 120B)" : "Built-in demo logic");
   }
 
   let toastTimer;
@@ -91,7 +91,7 @@
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
           ],
-          model: "llama-3.1-8b-instant",
+          model: "openai/gpt-oss-120b",
           temperature: 0.5,
           max_tokens: 1024
         })
@@ -592,7 +592,7 @@ Return only the anonymized text.`;
       mode.textContent = "Backend: Gemma 4";
       mode.classList.add("live");
     } else if (getGroqApiKey()) {
-      mode.textContent = "AI: Groq (Llama 3.1)";
+      mode.textContent = "AI: Groq (GPT-OSS 120B)";
       mode.classList.add("live");
     } else {
       mode.textContent = "Demo mode";
