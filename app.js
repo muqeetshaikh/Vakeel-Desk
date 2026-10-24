@@ -168,17 +168,19 @@
   function viewSearch() {
     view.innerHTML =
       '<section class="hero">' +
-        "<h1>Your private AI clerk for Indian law.</h1>" +
-        "<p>Ask a question in plain words. Vakeel Desk shows the matching articles of the Constitution, a simple explanation, and related Supreme Court cases.</p>" +
-        '<form id="sf" class="searchbox" autocomplete="off">' +
-          '<input type="text" id="q" placeholder="Ask about the Constitution of India" aria-label="Your question">' +
-          '<button class="btn gold" type="submit">Ask</button>' +
-        "</form>" +
-        '<div class="chips">' + EXAMPLES.map(function (e) {
-          return '<button class="chip" type="button" data-q="' + esc(e) + '">' + esc(e) + "</button>";
-        }).join("") + "</div>" +
+        '<div class="wrap">' +
+          "<h1>Your private AI clerk for Indian law.</h1>" +
+          "<p>Ask a question in plain words. Vakeel Desk shows the matching articles of the Constitution, a simple explanation, and related Supreme Court cases.</p>" +
+          '<form id="sf" class="searchbox" autocomplete="off">' +
+            '<input type="text" id="q" placeholder="Ask about the Constitution of India" aria-label="Your question">' +
+            '<button class="btn gold" type="submit">Ask</button>' +
+          "</form>" +
+          '<div class="chips">' + EXAMPLES.map(function (e) {
+            return '<button class="chip" type="button" data-q="' + esc(e) + '">' + esc(e) + "</button>";
+          }).join("") + "</div>" +
+        '</div>' +
       "</section>" +
-      '<div id="results"></div>';
+      '<div class="wrap"><div id="results"></div></div>';
 
     const input = document.getElementById("q");
     document.getElementById("sf").addEventListener("submit", function (ev) {
@@ -280,26 +282,34 @@ Respond in JSON format:
 
   function viewMatters() {
     view.innerHTML =
-      "<h1>My Matters</h1>" +
-      '<div class="split">' +
-        "<section>" +
-          '<div class="card">' +
-            "<h2>New matter</h2>" +
-            '<p class="notice">Your text is processed by a local AI model. You review everything before it is saved.</p>' +
-            '<label class="lbl" for="notice-text">Paste a notice or case note</label>' +
-            '<textarea id="notice-text" placeholder="Paste the text of a notice, order or your own case note..."></textarea>' +
-            '<div class="row-actions">' +
-              '<button class="btn" id="extract-btn" type="button">Extract details</button>' +
-              '<button class="btn ghost" id="sample-btn" type="button">Use sample notice</button>' +
+      '<div class="page-banner">' +
+        '<div class="wrap">' +
+          '<h1>My Matters</h1>' +
+          '<p class="subtitle">Manage and organize your legal documents</p>' +
+          '<div class="banner-ornament"><div class="line"></div><div class="diamond"></div><div class="line"></div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="wrap">' +
+        '<div class="split">' +
+          "<section>" +
+            '<div class="card">' +
+              "<h2>New matter</h2>" +
+              '<p class="notice">Your text is processed by a local AI model. You review everything before it is saved.</p>' +
+              '<label class="lbl" for="notice-text">Paste a notice or case note</label>' +
+              '<textarea id="notice-text" placeholder="Paste the text of a notice, order or your own case note..."></textarea>' +
+              '<div class="row-actions">' +
+                '<button class="btn" id="extract-btn" type="button">Extract details</button>' +
+                '<button class="btn ghost" id="sample-btn" type="button">Use sample notice</button>' +
+              "</div>" +
             "</div>" +
-          "</div>" +
-          '<div id="review"></div>' +
-        "</section>" +
-        "<section>" +
-          "<h2>Saved matters</h2>" +
-          '<div id="saved"></div>' +
-        "</section>" +
-      "</div>";
+            '<div id="review"></div>' +
+          "</section>" +
+          "<section>" +
+            "<h2>Saved matters</h2>" +
+            '<div id="saved"></div>' +
+          "</section>" +
+        "</div>" +
+      '</div>';
 
     const ta = document.getElementById("notice-text");
     document.getElementById("sample-btn").addEventListener("click", function () { ta.value = D.sampleNotice; });
@@ -496,15 +506,23 @@ Return only the anonymized text.`;
   /* ---------- COMMUNITY ---------- */
   function viewCommunity() {
     view.innerHTML =
-      "<h1>Community</h1>" +
-      '<p class="muted">A peer space for advocates. Only anonymized text is posted here, and you approve every post.</p>' +
-      '<div class="card"><h3>New post</h3>' +
-        '<label class="lbl" for="p-author">Your name or handle</label>' +
-        '<input type="text" id="p-author" value="You (advocate)">' +
-        '<label class="lbl" for="p-text">What do you want to ask or share?</label>' +
-        '<textarea id="p-text" style="min-height:110px" placeholder="Ask for a second opinion or share a lesson. Do not include client details; the next step removes them for you to review."></textarea>' +
-        '<div class="row-actions"><button class="btn" id="post-btn" type="button">Review and post</button></div></div>' +
-      '<div class="section-title"><h2>Recent posts</h2></div><div id="feed"></div>';
+      '<div class="page-banner">' +
+        '<div class="wrap">' +
+          '<h1>Community</h1>' +
+          '<p class="subtitle">Share insights with fellow advocates</p>' +
+          '<div class="banner-ornament"><div class="line"></div><div class="diamond"></div><div class="line"></div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="wrap">' +
+        '<p class="muted">A peer space for advocates. Only anonymized text is posted here, and you approve every post.</p>' +
+        '<div class="card"><h3>New post</h3>' +
+          '<label class="lbl" for="p-author">Your name or handle</label>' +
+          '<input type="text" id="p-author" value="You (advocate)">' +
+          '<label class="lbl" for="p-text">What do you want to ask or share?</label>' +
+          '<textarea id="p-text" style="min-height:110px" placeholder="Ask for a second opinion or share a lesson. Do not include client details; the next step removes them for you to review."></textarea>' +
+          '<div class="row-actions"><button class="btn" id="post-btn" type="button">Review and post</button></div></div>' +
+        '<div class="section-title"><h2>Recent posts</h2></div><div id="feed"></div>' +
+      '</div>';
 
     document.getElementById("post-btn").addEventListener("click", function () {
       const text = document.getElementById("p-text").value.trim();
@@ -532,11 +550,19 @@ Return only the anonymized text.`;
   let filter = "all";
   function viewActivity() {
     view.innerHTML =
-      "<h1>Activity</h1>" +
-      '<p class="notice">Every AI action and every human approval is recorded here.</p>' +
-      '<div class="filterbar"><label for="flt" class="muted">Show</label>' +
-        '<select id="flt"><option value="all">All actions</option><option value="ai">AI actions</option><option value="human">Human actions and approvals</option></select></div>' +
-      '<div class="card table-wrap"><table><thead><tr><th>Time</th><th>Action</th><th>By</th><th>Details</th></tr></thead><tbody id="rows"></tbody></table></div>';
+      '<div class="page-banner">' +
+        '<div class="wrap">' +
+          '<h1>Activity</h1>' +
+          '<p class="subtitle">Audit log of all actions and approvals</p>' +
+          '<div class="banner-ornament"><div class="line"></div><div class="diamond"></div><div class="line"></div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="wrap">' +
+        '<p class="notice">Every AI action and every human approval is recorded here.</p>' +
+        '<div class="filterbar"><label for="flt" class="muted">Show</label>' +
+          '<select id="flt"><option value="all">All actions</option><option value="ai">AI actions</option><option value="human">Human actions and approvals</option></select></div>' +
+        '<div class="card table-wrap"><table><thead><tr><th>Time</th><th>Action</th><th>By</th><th>Details</th></tr></thead><tbody id="rows"></tbody></table></div>' +
+      '</div>';
     const sel = document.getElementById("flt");
     sel.value = filter;
     sel.addEventListener("change", function () { filter = sel.value; renderRows(); });
@@ -552,14 +578,22 @@ Return only the anonymized text.`;
   /* ---------- SETTINGS ---------- */
   function viewSettings() {
     view.innerHTML =
-      "<h1>Settings</h1>" +
-      '<div class="card">' +
-        "<h2>Backend Configuration</h2>" +
-        '<p class="note">The API key is configured in the .env file on the server for security.</p>' +
-        '<label class="lbl" for="api-url">Backend URL</label>' +
-        '<input type="text" id="api-url" placeholder="http://localhost:3000" value="' + esc(API_URL) + '">' +
-        '<p class="muted" style="margin-top:8px">The backend server reads the API key from .env file.</p>' +
-        '<div class="row-actions"><button class="btn gold" id="save-settings" type="button">Save Settings</button></div>' +
+      '<div class="page-banner">' +
+        '<div class="wrap">' +
+          '<h1>Settings</h1>' +
+          '<p class="subtitle">Configure your application preferences</p>' +
+          '<div class="banner-ornament"><div class="line"></div><div class="diamond"></div><div class="line"></div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="wrap">' +
+        '<div class="card">' +
+          "<h2>Backend Configuration</h2>" +
+          '<p class="note">The API key is configured in the .env file on the server for security.</p>' +
+          '<label class="lbl" for="api-url">Backend URL</label>' +
+          '<input type="text" id="api-url" placeholder="http://localhost:3000" value="' + esc(API_URL) + '">' +
+          '<p class="muted" style="margin-top:8px">The backend server reads the API key from .env file.</p>' +
+          '<div class="row-actions"><button class="btn gold" id="save-settings" type="button">Save Settings</button></div>' +
+        '</div>' +
       '</div>';
 
     document.getElementById("save-settings").addEventListener("click", function () {
