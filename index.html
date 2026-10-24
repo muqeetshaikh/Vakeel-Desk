@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vakeel Desk</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap bar">
+      <a class="brand" href="#/search"><span class="brand-mark">V</span><span>Vakeel Desk</span></a>
+      <nav id="nav">
+        <a href="#/search" data-route="search">Search</a>
+        <a href="#/matters" data-route="matters">My Matters</a>
+        <a href="#/community" data-route="community">Community</a>
+        <a href="#/activity" data-route="activity">Activity</a>
+      </nav>
+      <span class="mode" id="mode"></span>
+    </div>
+  </header>
+
+  <main class="wrap" id="view" aria-live="polite"></main>
+
+  <footer class="footer">
+    <div class="wrap">Information only, not legal advice. Article and case summaries are short and simplified; verify against the official text before relying on them.</div>
+  </footer>
+
+  <div id="toast" class="toast" role="status"></div>
+  <div id="modal" class="modal" hidden></div>
+
+  <script src="data.js"></script>
+  <script src="logic.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
