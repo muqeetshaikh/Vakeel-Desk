@@ -1,7 +1,7 @@
 /* Vakeel Desk - sample data (demo library).
    Article texts are SHORT, SIMPLIFIED explanations written for this demo.
    Always verify against the official Constitution / the judgment itself. */
-window.VD_DATA = {
+const VD_DATA = {
   articles: [
     {
       number: "14",
@@ -164,3 +164,11 @@ window.VD_DATA = {
     "and seizure of his records violated his right to privacy under Article 21 and his freedom under Article 19(1)(a).\n" +
     "(All names and numbers in this sample are fictional.)"
 };
+
+// Make it work in both Node.js (backend) and the Browser (frontend)
+if (typeof window !== 'undefined') {
+  window.VD_DATA = VD_DATA;
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = VD_DATA;
+}

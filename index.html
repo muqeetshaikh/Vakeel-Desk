@@ -3,18 +3,41 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Vakeel Desk - Private AI workspace for Indian lawyers">
   <title>Vakeel Desk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="topbar">
     <div class="wrap bar">
-      <a class="brand" href="#/search"><span class="brand-mark">V</span><span>Vakeel Desk</span></a>
+      <a class="brand" href="#/search">
+        <svg class="brand-icon" viewBox="0 0 48 48" aria-hidden="true">
+          <defs>
+            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#e4c982"/>
+              <stop offset="50%" style="stop-color:#c5973f"/>
+              <stop offset="100%" style="stop-color:#a67c2d"/>
+            </linearGradient>
+          </defs>
+          <rect x="4" y="6" width="40" height="36" rx="2" fill="none" stroke="url(#goldGradient)" stroke-width="2"/>
+          <path d="M12 6V2c0-1.1.9-2 2-2h20c1.1 0 2 .9 2 2v4" fill="none" stroke="url(#goldGradient)" stroke-width="2"/>
+          <line x1="16" y1="16" x2="32" y2="16" stroke="url(#goldGradient)" stroke-width="2"/>
+          <line x1="16" y1="24" x2="32" y2="24" stroke="url(#goldGradient)" stroke-width="2"/>
+          <line x1="16" y1="32" x2="28" y2="32" stroke="url(#goldGradient)" stroke-width="2"/>
+          <circle cx="36" cy="36" r="8" fill="none" stroke="url(#goldGradient)" stroke-width="2"/>
+          <path d="M33 36l2 2 4-4" fill="none" stroke="url(#goldGradient)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand-text">Vakeel Desk</span>
+      </a>
       <nav id="nav">
         <a href="#/search" data-route="search">Search</a>
         <a href="#/matters" data-route="matters">My Matters</a>
         <a href="#/community" data-route="community">Community</a>
         <a href="#/activity" data-route="activity">Activity</a>
+        <a href="#/settings" data-route="settings">Settings</a>
       </nav>
       <span class="mode" id="mode"></span>
     </div>
@@ -23,7 +46,19 @@
   <main class="wrap" id="view" aria-live="polite"></main>
 
   <footer class="footer">
-    <div class="wrap">Information only, not legal advice. Article and case summaries are short and simplified; verify against the official text before relying on them.</div>
+    <div class="wrap">
+      <div class="footer-top">
+        <div class="footer-divider">
+          <div class="divider-line"></div>
+          <svg class="diamond" viewBox="0 0 12 12" aria-hidden="true">
+            <path d="M6 0L12 6L6 12L0 6L6 0Z" fill="#c5973f"/>
+          </svg>
+          <div class="divider-line"></div>
+        </div>
+      </div>
+      <p class="footer-disclaimer">Information only, not legal advice. Article and case summaries are short and simplified; verify against the official text before relying on them.</p>
+      <p class="footer-legal">Independent project. Not affiliated with any court or government body.</p>
+    </div>
   </footer>
 
   <div id="toast" class="toast" role="status"></div>

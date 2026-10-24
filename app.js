@@ -9,25 +9,7 @@
 (function () {
   "use strict";
 
-  const API_URL = ""; // <-- put your backend address here, e.g. "http://localhost:5000"
-
-  const D = window.VD_DATA;
-  const L = window.VDLogic;
-  const ENGINE = API_URL ? "Gemma 4 (backend)" : "Built-in demo logic";
-  const view = document.getElementById("view");
-
   /* ---------- tiny helpers ---------- */
-  const esc = function (s) {
-    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-    });
-  };
-  const nl2br = function (s) { return esc(s).replace(/\n/g, "<br>"); };
-  const fmtTime = function (iso) {
-    const d = new Date(iso);
-    return isNaN(d) ? "" : d.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
-  };
-
   const memory = {};
   function load(key, fallback) {
     try {
@@ -39,6 +21,32 @@
   function save(key, value) {
     memory[key] = value;
     try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* ignore */ }
+  }
+
+  const esc = function (s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  };
+  const nl2br = function (s) { return esc(s).replace(/\n/g, "<br>"); };
+  const fmtTime = function (iso) {
+    const d = new Date(iso);
+    return isNaN(d) ? "" : d.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+  };
+
+  const API_URL = "http://localhost:3000"; // <-- put your backend address here, e.g. "http://localhost:5000"
+
+  const D = window.VD_DATA;
+  const L = window.VDLogic;
+  const view = document.getElementById("view");
+
+  function getGroqApiKey() {
+    return load("vd_groq_api_key", "");
+  }
+
+  function getEngine() {
+    const apiKey = getGroqApiKey();
+    return API_URL ? "Gemma 4 (backend)" : (apiKey ? "Groq (GPT-OSS 120B)" : "Built-in demo logic");
   }
 
   let toastTimer;
@@ -70,6 +78,38 @@
     }
   }
 
+  async function callGroq(systemPrompt, userPrompt) {
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + getGroqApiKey()
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          model: "openai/gpt-oss-120b",
+          temperature: 0.5,
+          max_tokens: 1024
+        })
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Groq API error:", errorData);
+        throw new Error("Groq API error: " + res.status + " - " + (errorData.error?.message || res.statusText));
+      }
+      const data = await res.json();
+      return data.choices[0]?.message?.content || "";
+    } catch (e) {
+      console.error("Groq API error:", e);
+      toast("AI API error: " + e.message);
+      return null;
+    }
+  }
+
   /* ---------- state ---------- */
   const seedInfo = L.extract(D.sampleNotice);
   let matters = load("vd_matters", [{
@@ -91,12 +131,12 @@
   ]);
 
   function addLog(type, action, details) {
-    logs.unshift({ iso: new Date().toISOString(), type: type, user: type === "ai" ? ENGINE : "You (advocate)", action: action, details: details || "" });
+    logs.unshift({ iso: new Date().toISOString(), type: type, user: type === "ai" ? getEngine() : "You (advocate)", action: action, details: details || "" });
     save("vd_log", logs);
   }
 
   /* ---------- router ---------- */
-  const routes = { search: viewSearch, matters: viewMatters, community: viewCommunity, activity: viewActivity };
+  const routes = { search: viewSearch, matters: viewMatters, community: viewCommunity, activity: viewActivity, settings: viewSettings };
   let pendingQuestion = "";
 
   function currentRoute() {
@@ -128,17 +168,19 @@
   function viewSearch() {
     view.innerHTML =
       '<section class="hero">' +
-        "<h1>Your private AI clerk for Indian law.</h1>" +
-        "<p>Ask a question in plain words. Vakeel Desk shows the matching articles of the Constitution, a simple explanation, and related Supreme Court cases.</p>" +
-        '<form id="sf" class="searchbox" autocomplete="off">' +
-          '<input type="text" id="q" placeholder="Ask about the Constitution of India" aria-label="Your question">' +
-          '<button class="btn gold" type="submit">Ask</button>' +
-        "</form>" +
-        '<div class="chips">' + EXAMPLES.map(function (e) {
-          return '<button class="chip" type="button" data-q="' + esc(e) + '">' + esc(e) + "</button>";
-        }).join("") + "</div>" +
+        '<div class="wrap">' +
+          "<h1>Your private AI clerk for Indian law.</h1>" +
+          "<p>Ask a question in plain words. Vakeel Desk shows the matching articles of the Constitution, a simple explanation, and related Supreme Court cases.</p>" +
+          '<form id="sf" class="searchbox" autocomplete="off">' +
+            '<input type="text" id="q" placeholder="Ask about the Constitution of India" aria-label="Your question">' +
+            '<button class="btn gold" type="submit">Ask</button>' +
+          "</form>" +
+          '<div class="chips">' + EXAMPLES.map(function (e) {
+            return '<button class="chip" type="button" data-q="' + esc(e) + '">' + esc(e) + "</button>";
+          }).join("") + "</div>" +
+        '</div>' +
       "</section>" +
-      '<div id="results"></div>';
+      '<div class="wrap"><div id="results"></div></div>';
 
     const input = document.getElementById("q");
     document.getElementById("sf").addEventListener("submit", function (ev) {
@@ -171,7 +213,39 @@
           return { name: c.name, year: c.year, summary: c.summary || "", articles: c.articles || [] };
         })
       };
-    } else {
+    } else if (getGroqApiKey()) {
+      const systemPrompt = `You are a legal expert on the Constitution of India.
+When answering questions:
+1. Provide a clear, plain-language explanation
+2. Cite relevant articles by number
+3. Mention related Supreme Court cases if applicable
+4. Keep responses concise and practical
+
+Respond in JSON format:
+{
+  "answer": "your explanation",
+  "articles": [{"number": "21", "title": "Article title", "text": "plain text"}],
+  "cases": [{"name": "Case name", "year": "year", "summary": "brief summary", "articles": ["21"]}]
+}`;
+      const groqResponse = await callGroq(systemPrompt, q);
+      if (groqResponse) {
+        try {
+          const parsed = JSON.parse(groqResponse);
+          res = {
+            answer: parsed.answer || groqResponse,
+            articles: parsed.articles || [],
+            cases: parsed.cases || []
+          };
+        } catch (e) {
+          res = {
+            answer: groqResponse,
+            articles: [],
+            cases: []
+          };
+        }
+      }
+    }
+    if (!res) {
       res = L.search(q);
     }
 
@@ -208,26 +282,34 @@
 
   function viewMatters() {
     view.innerHTML =
-      "<h1>My Matters</h1>" +
-      '<div class="split">' +
-        "<section>" +
-          '<div class="card">' +
-            "<h2>New matter</h2>" +
-            '<p class="notice">Your text is processed by a local AI model. You review everything before it is saved.</p>' +
-            '<label class="lbl" for="notice-text">Paste a notice or case note</label>' +
-            '<textarea id="notice-text" placeholder="Paste the text of a notice, order or your own case note..."></textarea>' +
-            '<div class="row-actions">' +
-              '<button class="btn" id="extract-btn" type="button">Extract details</button>' +
-              '<button class="btn ghost" id="sample-btn" type="button">Use sample notice</button>' +
+      '<div class="page-banner">' +
+        '<div class="wrap">' +
+          '<h1>My Matters</h1>' +
+          '<p class="subtitle">Manage and organize your legal documents</p>' +
+          '<div class="banner-ornament"><div class="line"></div><div class="diamond"></div><div class="line"></div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="wrap">' +
+        '<div class="split">' +
+          "<section>" +
+            '<div class="card">' +
+              "<h2>New matter</h2>" +
+              '<p class="notice">Your text is processed by a local AI model. You review everything before it is saved.</p>' +
+              '<label class="lbl" for="notice-text">Paste a notice or case note</label>' +
+              '<textarea id="notice-text" placeholder="Paste the text of a notice, order or your own case note..."></textarea>' +
+              '<div class="row-actions">' +
+                '<button class="btn" id="extract-btn" type="button">Extract details</button>' +
+                '<button class="btn ghost" id="sample-btn" type="button">Use sample notice</button>' +
+              "</div>" +
             "</div>" +
-          "</div>" +
-          '<div id="review"></div>' +
-        "</section>" +
-        "<section>" +
-          "<h2>Saved matters</h2>" +
-          '<div id="saved"></div>' +
-        "</section>" +
-      "</div>";
+            '<div id="review"></div>' +
+          "</section>" +
+          "<section>" +
+            "<h2>Saved matters</h2>" +
+            '<div id="saved"></div>' +
+          "</section>" +
+        "</div>" +
+      '</div>';
 
     const ta = document.getElementById("notice-text");
     document.getElementById("sample-btn").addEventListener("click", function () { ta.value = D.sampleNotice; });
@@ -244,6 +326,40 @@
           dates: Array.isArray(remote.dates) ? remote.dates.join(", ") : (remote.dates || ""),
           articles: Array.isArray(remote.articles) ? remote.articles.join(", ") : (remote.articles || "")
         };
+      } else if (getGroqApiKey()) {
+        const systemPrompt = `You are a legal document processor. Extract key information from legal notices and documents.
+Extract the following fields:
+- parties: The parties involved in the case
+- court: The court name
+- caseNumber: The case number
+- dates: Important dates (filing, hearing, etc.)
+- articles: Any constitutional articles mentioned
+
+Respond in JSON format:
+{
+  "parties": "string",
+  "court": "string",
+  "caseNumber": "string",
+  "dates": "string",
+  "articles": "string"
+}`;
+        const groqResponse = await callGroq(systemPrompt, text);
+        if (groqResponse) {
+          try {
+            const parsed = JSON.parse(groqResponse);
+            f = {
+              parties: parsed.parties || "",
+              court: parsed.court || "",
+              caseNumber: parsed.caseNumber || "",
+              dates: parsed.dates || "",
+              articles: parsed.articles || ""
+            };
+          } catch (e) {
+            f = L.extract(text);
+          }
+        } else {
+          f = L.extract(text);
+        }
       } else {
         f = L.extract(text);
       }
@@ -331,6 +447,24 @@
     const remote = await callApi("/anonymize", { text: item.text });
     if (remote && (remote.anonymized || remote.text)) {
       anon = remote.anonymized || remote.text;
+    } else if (getGroqApiKey()) {
+      const systemPrompt = `You are a document anonymizer. Remove all personally identifiable information from legal documents.
+Replace with placeholders:
+- Names → [NAME]
+- Addresses → [ADDRESS]
+- Phone numbers → [PHONE]
+- Email addresses → [EMAIL]
+- Case numbers → [CASE NUMBER]
+- Any other identifying details → [REDACTED]
+
+Return only the anonymized text.`;
+      const groqResponse = await callGroq(systemPrompt, item.text);
+      if (groqResponse) {
+        anon = groqResponse;
+      } else {
+        const r = L.anonymize(item.text);
+        anon = r.text; count = r.count;
+      }
     } else {
       const r = L.anonymize(item.text);
       anon = r.text; count = r.count;
@@ -372,15 +506,23 @@
   /* ---------- COMMUNITY ---------- */
   function viewCommunity() {
     view.innerHTML =
-      "<h1>Community</h1>" +
-      '<p class="muted">A peer space for advocates. Only anonymized text is posted here, and you approve every post.</p>' +
-      '<div class="card"><h3>New post</h3>' +
-        '<label class="lbl" for="p-author">Your name or handle</label>' +
-        '<input type="text" id="p-author" value="You (advocate)">' +
-        '<label class="lbl" for="p-text">What do you want to ask or share?</label>' +
-        '<textarea id="p-text" style="min-height:110px" placeholder="Ask for a second opinion or share a lesson. Do not include client details; the next step removes them for you to review."></textarea>' +
-        '<div class="row-actions"><button class="btn" id="post-btn" type="button">Review and post</button></div></div>' +
-      '<div class="section-title"><h2>Recent posts</h2></div><div id="feed"></div>';
+      '<div class="page-banner">' +
+        '<div class="wrap">' +
+          '<h1>Community</h1>' +
+          '<p class="subtitle">Share insights with fellow advocates</p>' +
+          '<div class="banner-ornament"><div class="line"></div><div class="diamond"></div><div class="line"></div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="wrap">' +
+        '<p class="muted">A peer space for advocates. Only anonymized text is posted here, and you approve every post.</p>' +
+        '<div class="card"><h3>New post</h3>' +
+          '<label class="lbl" for="p-author">Your name or handle</label>' +
+          '<input type="text" id="p-author" value="You (advocate)">' +
+          '<label class="lbl" for="p-text">What do you want to ask or share?</label>' +
+          '<textarea id="p-text" style="min-height:110px" placeholder="Ask for a second opinion or share a lesson. Do not include client details; the next step removes them for you to review."></textarea>' +
+          '<div class="row-actions"><button class="btn" id="post-btn" type="button">Review and post</button></div></div>' +
+        '<div class="section-title"><h2>Recent posts</h2></div><div id="feed"></div>' +
+      '</div>';
 
     document.getElementById("post-btn").addEventListener("click", function () {
       const text = document.getElementById("p-text").value.trim();
@@ -408,11 +550,19 @@
   let filter = "all";
   function viewActivity() {
     view.innerHTML =
-      "<h1>Activity</h1>" +
-      '<p class="notice">Every AI action and every human approval is recorded here.</p>' +
-      '<div class="filterbar"><label for="flt" class="muted">Show</label>' +
-        '<select id="flt"><option value="all">All actions</option><option value="ai">AI actions</option><option value="human">Human actions and approvals</option></select></div>' +
-      '<div class="card table-wrap"><table><thead><tr><th>Time</th><th>Action</th><th>By</th><th>Details</th></tr></thead><tbody id="rows"></tbody></table></div>';
+      '<div class="page-banner">' +
+        '<div class="wrap">' +
+          '<h1>Activity</h1>' +
+          '<p class="subtitle">Audit log of all actions and approvals</p>' +
+          '<div class="banner-ornament"><div class="line"></div><div class="diamond"></div><div class="line"></div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="wrap">' +
+        '<p class="notice">Every AI action and every human approval is recorded here.</p>' +
+        '<div class="filterbar"><label for="flt" class="muted">Show</label>' +
+          '<select id="flt"><option value="all">All actions</option><option value="ai">AI actions</option><option value="human">Human actions and approvals</option></select></div>' +
+        '<div class="card table-wrap"><table><thead><tr><th>Time</th><th>Action</th><th>By</th><th>Details</th></tr></thead><tbody id="rows"></tbody></table></div>' +
+      '</div>';
     const sel = document.getElementById("flt");
     sel.value = filter;
     sel.addEventListener("change", function () { filter = sel.value; renderRows(); });
@@ -425,9 +575,54 @@
     }).join("") : '<tr><td colspan="4" class="muted">Nothing here yet.</td></tr>';
   }
 
+  /* ---------- SETTINGS ---------- */
+  function viewSettings() {
+    view.innerHTML =
+      '<div class="page-banner">' +
+        '<div class="wrap">' +
+          '<h1>Settings</h1>' +
+          '<p class="subtitle">Configure your application preferences</p>' +
+          '<div class="banner-ornament"><div class="line"></div><div class="diamond"></div><div class="line"></div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="wrap">' +
+        '<div class="card">' +
+          "<h2>Backend Configuration</h2>" +
+          '<p class="note">The API key is configured in the .env file on the server for security.</p>' +
+          '<label class="lbl" for="api-url">Backend URL</label>' +
+          '<input type="text" id="api-url" placeholder="http://localhost:3000" value="' + esc(API_URL) + '">' +
+          '<p class="muted" style="margin-top:8px">The backend server reads the API key from .env file.</p>' +
+          '<div class="row-actions"><button class="btn gold" id="save-settings" type="button">Save Settings</button></div>' +
+        '</div>' +
+      '</div>';
+
+    document.getElementById("save-settings").addEventListener("click", function () {
+      const apiUrl = document.getElementById("api-url").value.trim();
+      // Note: API_URL is a constant, so we'd need to reload to apply changes
+      if (apiUrl !== API_URL) {
+        toast("API URL change requires page reload to take effect.");
+      } else {
+        toast("Settings saved.");
+      }
+    });
+  }
+
   /* ---------- start ---------- */
   const mode = document.getElementById("mode");
-  mode.textContent = API_URL ? "Backend: Gemma 4" : "Demo mode";
-  if (API_URL) mode.classList.add("live");
+
+  function updateModeDisplay() {
+    if (API_URL) {
+      mode.textContent = "Backend: Gemma 4";
+      mode.classList.add("live");
+    } else if (getGroqApiKey()) {
+      mode.textContent = "AI: Groq (GPT-OSS 120B)";
+      mode.classList.add("live");
+    } else {
+      mode.textContent = "Demo mode";
+      mode.classList.remove("live");
+    }
+  }
+
+  updateModeDisplay();
   render();
 })();
