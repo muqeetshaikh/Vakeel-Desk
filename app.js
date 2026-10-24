@@ -35,12 +35,19 @@
   };
 
   const API_URL = ""; // <-- put your backend address here, e.g. "http://localhost:5000"
-  const GROQ_API_KEY = load("vd_groq_api_key", ""); // API key stored in localStorage
 
   const D = window.VD_DATA;
   const L = window.VDLogic;
-  const ENGINE = API_URL ? "Gemma 4 (backend)" : (GROQ_API_KEY ? "Groq (Llama 3.3)" : "Built-in demo logic");
   const view = document.getElementById("view");
+
+  function getGroqApiKey() {
+    return load("vd_groq_api_key", "");
+  }
+
+  function getEngine() {
+    const apiKey = getGroqApiKey();
+    return API_URL ? "Gemma 4 (backend)" : (apiKey ? "Groq (Llama 3.3)" : "Built-in demo logic");
+  }
 
   let toastTimer;
   function toast(msg) {
@@ -77,7 +84,7 @@
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer " + GROQ_API_KEY
+          "Authorization": "Bearer " + getGroqApiKey()
         },
         body: JSON.stringify({
           messages: [
@@ -119,7 +126,7 @@
   ]);
 
   function addLog(type, action, details) {
-    logs.unshift({ iso: new Date().toISOString(), type: type, user: type === "ai" ? ENGINE : "You (advocate)", action: action, details: details || "" });
+    logs.unshift({ iso: new Date().toISOString(), type: type, user: type === "ai" ? getEngine() : "You (advocate)", action: action, details: details || "" });
     save("vd_log", logs);
   }
 
@@ -199,7 +206,7 @@
           return { name: c.name, year: c.year, summary: c.summary || "", articles: c.articles || [] };
         })
       };
-    } else if (GROQ_API_KEY) {
+    } else if (getGroqApiKey()) {
       const systemPrompt = `You are a legal expert on the Constitution of India.
 When answering questions:
 1. Provide a clear, plain-language explanation
@@ -304,7 +311,7 @@ Respond in JSON format:
           dates: Array.isArray(remote.dates) ? remote.dates.join(", ") : (remote.dates || ""),
           articles: Array.isArray(remote.articles) ? remote.articles.join(", ") : (remote.articles || "")
         };
-      } else if (GROQ_API_KEY) {
+      } else if (getGroqApiKey()) {
         const systemPrompt = `You are a legal document processor. Extract key information from legal notices and documents.
 Extract the following fields:
 - parties: The parties involved in the case
@@ -425,7 +432,7 @@ Respond in JSON format:
     const remote = await callApi("/anonymize", { text: item.text });
     if (remote && (remote.anonymized || remote.text)) {
       anon = remote.anonymized || remote.text;
-    } else if (GROQ_API_KEY) {
+    } else if (getGroqApiKey()) {
       const systemPrompt = `You are a document anonymizer. Remove all personally identifiable information from legal documents.
 Replace with placeholders:
 - Names → [NAME]
@@ -545,7 +552,7 @@ Return only the anonymized text.`;
         "<h2>AI Configuration</h2>" +
         '<p class="note">Configure your AI provider. The API key is stored locally in your browser.</p>' +
         '<label class="lbl" for="groq-key">Groq API Key</label>' +
-        '<input type="password" id="groq-key" placeholder="gsk_..." value="' + esc(GROQ_API_KEY) + '">' +
+        '<input type="password" id="groq-key" placeholder="gsk_..." value="' + esc(getGroqApiKey()) + '">' +
         '<p class="muted" style="margin-top:8px">Get your API key from <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a></p>' +
         '<div class="row-actions"><button class="btn gold" id="save-settings" type="button">Save Settings</button></div>' +
       '</div>' +
@@ -561,6 +568,8 @@ Return only the anonymized text.`;
       const groqKey = document.getElementById("groq-key").value.trim();
       const apiUrl = document.getElementById("api-url").value.trim();
       save("vd_groq_api_key", groqKey);
+      // Update the mode display
+      updateModeDisplay();
       // Note: API_URL is a constant, so we'd need to reload to apply changes
       if (apiUrl !== API_URL) {
         toast("API URL change requires page reload to take effect.");
@@ -572,14 +581,20 @@ Return only the anonymized text.`;
 
   /* ---------- start ---------- */
   const mode = document.getElementById("mode");
-  if (API_URL) {
-    mode.textContent = "Backend: Gemma 4";
-    mode.classList.add("live");
-  } else if (GROQ_API_KEY) {
-    mode.textContent = "AI: Groq (Llama 3.3)";
-    mode.classList.add("live");
-  } else {
-    mode.textContent = "Demo mode";
+
+  function updateModeDisplay() {
+    if (API_URL) {
+      mode.textContent = "Backend: Gemma 4";
+      mode.classList.add("live");
+    } else if (getGroqApiKey()) {
+      mode.textContent = "AI: Groq (Llama 3.3)";
+      mode.classList.add("live");
+    } else {
+      mode.textContent = "Demo mode";
+      mode.classList.remove("live");
+    }
   }
+
+  updateModeDisplay();
   render();
 })();
