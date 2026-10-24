@@ -39,9 +39,11 @@ async function callGroq(systemPrompt, userPrompt) {
 
 // POST /ask - Answer questions about the Constitution
 app.post('/ask', async (req, res) => {
+  console.log('Received /ask request:', req.body);
   try {
     const { question } = req.body;
     if (!question) {
+      console.log('Error: Question is required');
       return res.status(400).json({ error: 'Question is required' });
     }
 
